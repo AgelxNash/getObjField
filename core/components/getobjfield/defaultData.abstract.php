@@ -11,6 +11,7 @@ abstract class defaultData{
 	
 	protected static $ConfigDefault = array(
 		'queryMode' => 2,
+		'default' => '',
 		'output' => '',
 		'prepare'=>''
 	);
@@ -94,7 +95,8 @@ abstract class defaultData{
 		$this->_config = array();
 		$this->_config['id'] = $this->getOption('id', $config, $this->getDefaultId());
 		$this->_config['field'] = $this->getOption('field', $config, $this->getDefaultField());
-		$this->_config['output'] = $this->getOption('default', $config);
+		$this->_config['default'] = $this->getOption('default', $config);
+		$this->_config['output'] = $this->getOption('output', $config);
 		$this->_config['queryMode'] = $this->getOption('queryMode', $config);
 		$this->_config['object'] = $this->getOption('object', $config);
 		$this->_config['prepare'] = $this->getOption('prepare', $config);
@@ -135,6 +137,14 @@ abstract class defaultData{
 	}
 	
 	public function prepareValue($value){
+		$default = $this->getOption('default');
+		if($value=='' && !empty($default)){
+			$value = $this->getData($this->getOption('id'), $default);
+		}
+		if($value==''){
+			$value = $this->getOption('output');
+		}
+		
 		$prepare = $this->getOption('prepare');
 		if(!empty($prepare)){
 			$value = $this->_modx->runSnippet($prepare, array('input'=>$value));
@@ -146,11 +156,14 @@ abstract class defaultData{
 		return is_null($this->defaultField) ? $this->_modx->getPK($this->getOption('object')) : $this->defaultField;
 	}
 	
+	public function getDataID($id){
+		return $this->_config['id'] = $id;
+	}
 	protected function checkData($id, $field){
 		$out = $this->_getData(
 			$id, 
 			$field, 
-			$this->getOption('output'), 
+			'', 
 			$this->getOption('object')
 		);
 		return $out;

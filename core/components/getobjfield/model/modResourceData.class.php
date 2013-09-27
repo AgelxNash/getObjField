@@ -7,7 +7,10 @@ class modResourceData extends \getObjField\defaultData{
 	
 	protected static $localConfigDefault = array(
 		'processTV' => false,
-		'isTV' => false
+		'isTV' => false,
+		'top' => 0,
+		'topLevel' => 0,
+		'parentdata'=> 'id'
 	);
 	
 	public function __construct(\modX &$modx, array $config = array()) {
@@ -19,10 +22,28 @@ class modResourceData extends \getObjField\defaultData{
 		parent::checkConfig($config);
 		$this->_config['processTV'] = $this->getOption('processTV', $config);
 		$this->_config['isTV'] = $this->getOption('isTV', $config);
+		$this->_config['topLevel'] = $this->getOption('topLevel', $config);
+		$this->_config['top'] = $this->getOption('top', $config);
+		$this->_config['parentdata'] = $this->getOption('parentdata', $config);
+	}
+	
+	public function getDataID($id){
+		switch(true){
+			case (($top = $this->getOption('topLevel'))>0):{
+				$id = $this->UP_TopLavel($id, $top);
+				break;
+			}
+			case (($top = $this->getOption('top'))>0):{
+				$id = $this->UP_Top($id, $top);
+				break;
+			}
+		}
+		return $this->_config['id'] = $id;
 	}
 	
 	public function getData($id, $field){
 		//$mainField = $this->cacheObj->getColumns($this->getOption('object'));
+		$id = $this->getDataID($id);
 		$value = $isTV = $processTV = null;
 		if($field == 'id') {
 			$object = null;
@@ -38,12 +59,50 @@ class modResourceData extends \getObjField\defaultData{
 				}else{
 					$value = ($processTV) ? $tv->renderOutput($id) : $tv->getValue($id);
 				}
-				if (is_null($value)) {
-					$value = $this->getOption('output');
-				}
 			}
 		}
 		
-		return (is_null($value) && $object) ? parent::getData($id, $field) : $value;
+		if(is_null($value) && $object){
+			switch($field){
+				case 'parentdata':{
+					$value = \getObjField\defaultData::getData($id, 'parent');
+					$value = ($value>0) ? $this->getData($value, $this->getOption('parentdata')) : '';
+					break;
+				}
+				default:{
+					$value = parent::getData($id,$field);
+				}
+			}
+		}
+		return $value;
+	}
+	
+	protected function UP_TopLavel($id, $top){
+		$top += 1;
+		$parents = array($id);
+		for($i=1; $i <= $top; $i++){
+			$parents[$i] = \getObjField\defaultData::getData($parents[$i-1], 'parent');
+			if($parents[$i] == ''){
+				unset($parents[$i]);
+				$top = $i;
+				break;
+			}
+		}
+		$top--;
+		if($parents[count($parents)-1] != 0){
+			$parents[] = 0;
+		}
+		$parents = array_reverse($parents);
+		return $parents[$top];
+	}
+	
+	protected function UP_Top($id, $top){
+		$top = $this->getOption('top');
+		$parent = $id;
+		while($top != $parent && $parent != ''){
+			$lastID = $parent;
+			$parent = \getObjField\defaultData::getData($lastID, 'parent');
+		}
+		return $lastID;
 	}
 }
