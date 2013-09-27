@@ -1,4 +1,4 @@
-<?php namespace pdoField;
+<?php namespace getObjField;
 include_once(dirname(__FILE__).'/loadDataObject.class.php');
 include_once(dirname(__FILE__).'/xNop.class.php');
 
@@ -57,7 +57,7 @@ abstract class defaultData{
 	}
 	
 	public function loadDataObject($mode = null){
-		$obj = \pdoField\loadDataObject::getInstance($this->_modx);
+		$obj = \getObjField\loadDataObject::getInstance($this->_modx);
 		if(!isset($mode)){
 			$mode = $this->getOption('queryMode');
 		}

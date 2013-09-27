@@ -1,4 +1,4 @@
-<?php namespace pdoField;
+<?php namespace getObjField;
 
 class xNop{
 	/**

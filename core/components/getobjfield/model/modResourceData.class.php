@@ -1,7 +1,7 @@
 <?php
 include_once(dirname(dirname(__FILE__))."/defaultData.abstract.php");
 
-class modResourceData extends \pdoField\defaultData{
+class modResourceData extends \getObjField\defaultData{
 	protected $varname = 'resource';
 	protected $defaultField = 'pagetitle';
 	
@@ -21,7 +21,7 @@ class modResourceData extends \pdoField\defaultData{
 	}
 	
 	public function getData($id, $field){
-		$mainField = $this->cacheObj->getColumns($this->getOption('object'));
+		//$mainField = $this->cacheObj->getColumns($this->getOption('object'));
 		$value = $isTV = $processTV = null;
 		if($field == 'id') {
 			$object = null;
@@ -40,32 +40,6 @@ class modResourceData extends \pdoField\defaultData{
 				}
 				if (is_null($value)) {
 					$value = $this->getOption('output');
-				}
-			}else{
-				switch($field){
-					case 'title':{
-						$value = parent::getData($id, 'longtitle');
-						if($value==''){
-							$value = parent::getData($id, 'pagetitle');
-						}
-						break;
-					}
-					case 'menuname':{
-						$value = parent::getData($id, 'menutitle');
-						if($value==''){
-							$value = parent::getData($id, 'pagetitle');
-						}
-						break;
-					}
-					case 'parentname':{
-						$value = parent::getData($id, 'parent');
-						if($value>0){
-							$value = $this->getData($value, 'title');
-						}else{
-							$value = '';
-						}
-						break;
-					}
 				}
 			}
 		}
