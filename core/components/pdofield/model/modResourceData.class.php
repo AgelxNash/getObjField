@@ -6,7 +6,8 @@ class modResourceData extends \pdoField\defaultData{
 	protected $defaultField = 'pagetitle';
 	
 	protected static $localConfigDefault = array(
-		'processTV' => false
+		'processTV' => false,
+		'isTV' => false
 	);
 	
 	public function __construct(\modX &$modx, array $config = array()) {
@@ -19,34 +20,56 @@ class modResourceData extends \pdoField\defaultData{
 		$this->_config['processTV'] = $this->getOption('processTV', $config);
 	}
 	
-	public function getData(){
+	public function getData($id, $field){
 		$mainField = $this->cacheObj->getColumns($this->getOption('object'));
 		$value = $isTV = $processTV = null;
-		$field = $this->getOption('field');
-		$id = $this->getOption('id');
 		if($field == 'id') {
 			$object = null;
 			$value = $id;
 		}else{
 			$object = true;
-		}
-		
-		
-		//$isTV = isset($scriptProperties['isTV']) ? $scriptProperties['isTV'] : 0;
-		$isTV = !isset($mainField[$field]);
-		$processTV = $this->getOption('processTV');
-		
-		if ($object && ($isTV || $processTV)) {
-			$tv = $this->_modx->getObject('modTemplateVar',array('name'=>$field));
-			if (!($tv instanceof modTemplateVar)){
-				$value = null;
+			$isTV = $this->getOption('isTV');
+			$processTV = $this->getOption('processTV');
+			
+			if ($isTV || $processTV) {
+				$tv = $this->_modx->getObject('modTemplateVar',array('name'=>$field));
+				if (!($tv instanceof modTemplateVar)){
+					$value = null;
+				}else{
+					$value = ($processTV) ? $tv->renderOutput($id) : $tv->getValue($id);
+				}
+				if (is_null($value)) {
+					$value = $this->getOption('output');
+				}
 			}else{
-				$value = ($processTV) ? $tv->renderOutput($id) : $tv->getValue($id);
-			}
-			if (is_null($value)) {
-				$value = $this->getOption('output');
+				switch($field){
+					case 'title':{
+						$value = parent::getData($id, 'longtitle');
+						if($value==''){
+							$value = parent::getData($id, 'pagetitle');
+						}
+						break;
+					}
+					case 'menuname':{
+						$value = parent::getData($id, 'menutitle');
+						if($value==''){
+							$value = parent::getData($id, 'pagetitle');
+						}
+						break;
+					}
+					case 'parentname':{
+						$value = parent::getData($id, 'parent');
+						if($value>0){
+							$value = $this->getData($value, 'title');
+						}else{
+							$value = '';
+						}
+						break;
+					}
+				}
 			}
 		}
-		return (is_null($value) && $object) ? parent::getData() : $value;
+		
+		return (is_null($value) && $object) ? parent::getData($id, $field) : $value;
 	}
 }

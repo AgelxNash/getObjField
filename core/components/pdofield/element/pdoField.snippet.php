@@ -4,6 +4,9 @@ $dir = $modx->getOption('pdofield.core_path', null, $modx->getOption('core_path'
 $className = $scriptProperties['object'].'Data';
 
 $pdoField = $modx->getService($className, $className, $dir.'model/', $scriptProperties);
-$pdoField = (!($pdoField instanceof $className)) ? new \pdoField\xNop() : $pdoField->checkConfig($scriptProperties);
+if(!($pdoField instanceof $className)){
+	$pdoField = new \pdoField\xNop();
+}
+$pdoField->checkConfig($scriptProperties);
 
-return $pdoField->getData();
+return $pdoField->prepareValue($pdoField->getData($pdoField->getOption('id'), $pdoField->getOption('field')));

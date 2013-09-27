@@ -11,10 +11,11 @@ abstract class defaultData{
 	protected $varname = null;
 	
 	protected static $ConfigDefault = array(
-		'queryMode' => 0,
-		'output' => ''
+		'queryMode' => 2,
+		'output' => '',
+		'prepare'=>''
 	);
-	protected $defaultField = 'id';
+	protected $defaultField = null;
 	/**
 	 * @param modX $modx
 	 * @param array $config
@@ -24,6 +25,7 @@ abstract class defaultData{
 		$this->_config = $config;
 		$this->cacheObj = $this->loadDataObject();
 	}
+	
 	public function checkConfig($config){
 		$this->_config = array();
 		$this->_config['id'] = $this->getOption('id', $config, $this->getDefaultId());
@@ -31,8 +33,9 @@ abstract class defaultData{
 		$this->_config['output'] = $this->getOption('default', $config);
 		$this->_config['queryMode'] = $this->getOption('queryMode', $config);
 		$this->_config['object'] = $this->getOption('object', $config);
-		return $this;
+		$this->_config['prepare'] = $this->getOption('prepare', $config);
 	}
+	
 	public function getOption($name, $config = null, $default = null){
 		if(is_null($config)){
 			$config = $this->_config;
@@ -48,9 +51,11 @@ abstract class defaultData{
 		}
 		return $out;
 	}
+	
 	public function objVarname(){
 		return $this->varname;
 	}
+	
 	public function loadDataObject($mode = null){
 		$obj = \pdoField\loadDataObject::getInstance($this->_modx);
 		if(!isset($mode)){
@@ -59,6 +64,7 @@ abstract class defaultData{
 		$obj->setMode($mode);
 		return $obj;
 	}
+	
 	public function getDefaultId(){
 		$out = 0;
 		$varname = $this->objVarname();
@@ -72,25 +78,33 @@ abstract class defaultData{
 		return $out;
 	}
 	
-	public function getDefaultField(){
-		/* return $this->_modx->getPK($this->getOption('object')); */
-		return $this->defaultField;
+	public function prepareValue($value){
+		$prepare = $this->getOption('prepare');
+		if(!empty($prepare)){
+			$value = $this->_modx->runSnippet($prepare, array('input'=>$value));
+		}
+		return $value;
 	}
-	protected function checkData(){
+	
+	public function getDefaultField(){
+		return is_null($this->defaultField) ? $this->_modx->getPK($this->getOption('object')) : $this->defaultField;
+	}
+	
+	protected function checkData($id, $field){
 		$out = $this->cacheObj->getData(
-			$this->getOption('id'), 
-			$this->getOption('field'), 
+			$id, 
+			$field, 
 			$this->getOption('output'), 
 			$this->getOption('object')
 		);
 		return $out;
 	}
-	public function getData(){
+	public function getData($id, $field){
 		$varname = $this->objVarname(); 
 		if(!is_null($varname) && is_object($this->_modx->$varname) && $id == $this->_modx->$varname->get('id')){
 			$out = $this->_modx->$varname->get($field);
 		} else {
-			$out = $this->checkData();
+			$out = $this->checkData($id, $field);
 		}
 		return $out;
 	}
