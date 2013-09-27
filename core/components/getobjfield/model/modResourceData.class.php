@@ -18,6 +18,7 @@ class modResourceData extends \getObjField\defaultData{
 	public function checkConfig($config){
 		parent::checkConfig($config);
 		$this->_config['processTV'] = $this->getOption('processTV', $config);
+		$this->_config['isTV'] = $this->getOption('isTV', $config);
 	}
 	
 	public function getData($id, $field){
@@ -30,7 +31,6 @@ class modResourceData extends \getObjField\defaultData{
 			$object = true;
 			$isTV = $this->getOption('isTV');
 			$processTV = $this->getOption('processTV');
-			
 			if ($isTV || $processTV) {
 				$tv = $this->_modx->getObject('modTemplateVar',array('name'=>$field));
 				if (!($tv instanceof modTemplateVar)){

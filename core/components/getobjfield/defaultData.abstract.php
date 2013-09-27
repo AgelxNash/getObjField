@@ -1,5 +1,4 @@
 <?php namespace getObjField;
-include_once(dirname(__FILE__).'/loadDataObject.class.php');
 include_once(dirname(__FILE__).'/xNop.class.php');
 
 abstract class defaultData{
@@ -15,6 +14,13 @@ abstract class defaultData{
 		'output' => '',
 		'prepare'=>''
 	);
+	
+	private $mode = 0;
+	
+	const QUERY_MODE_NOLOG = 2;
+	const QUERY_MODE_PDO = 1;
+	const QUERY_MODE_XPDO = 0;
+	
 	protected $defaultField = null;
 	/**
 	 * @param modX $modx
@@ -23,7 +29,65 @@ abstract class defaultData{
 	public function __construct(\modX &$modx, array $config = array()) {
 		$this->_modx =& $modx;
 		$this->_config = $config;
-		$this->cacheObj = $this->loadDataObject();
+	}
+	
+	public function getMode(){
+		return $this->mode;
+	}
+	
+	public function setMode($mode){
+		switch($mode){
+			case self::QUERY_MODE_NOLOG:
+			case self::QUERY_MODE_PDO:{
+				$this->mode = $mode;
+				break;
+			}
+			case self::QUERY_MODE_XPDO:
+			default:{
+				$this->mode = self::QUERY_MODE_XPDO;
+			}
+		}
+		return $this;
+	}
+	
+	public function _getData($resID, $name='pagetitle', $def='', $object='modResource'){
+		if(!isset($this->_cache[$object][$resID]) && ((int)$resID > 0)){
+			$this->_cache[$object][$resID] = $this->_query($object, $resID);
+		}
+		return (isset($this->_cache[$object][$resID][$name])) ? $this->_cache[$object][$resID][$name] : $def;
+	}
+	public function getColumns($object = 'modResource', $keys = false){
+		$data = isset($this->_fields[$object]) ? $this->_fields[$object] : $this->_modx->getFields($object);
+		return $keys ? array_keys($data) : $data;
+	}
+	
+	protected function _query($object, $pkID){
+		$where = array($this->_modx->getPK($object) => $pkID);
+		switch($this->mode){
+			case self::QUERY_MODE_PDO:{
+				$q = $this->_modx->newQuery($object);
+				$q->select("`".implode("`,`",$this->getColumns($object, true))."`")->where($where)->prepare();
+				//$q->select($this->_modx->getSelectColumns($object))->where($where)->prepare();
+				$q = $this->_modx->query($q->toSQL());
+				$out = $q ? $q->fetch(\PDO::FETCH_ASSOC) : array();
+				break;
+			}
+			case self::QUERY_MODE_NOLOG:{
+				$q = $this->_modx->newQuery($object);
+				$q->select(implode(",", $this->getColumns($object, true)))->where($where)->prepare();
+				//$q->select($this->_modx->getSelectColumns($object))->where($where)->prepare();
+				$q->stmt->execute();
+				$out = $q->stmt->fetch(\PDO::FETCH_ASSOC);
+				break;
+			}
+			case self::QUERY_MODE_XPDO:
+			default:{ 
+				$tmp = $this->_modx->getObject($object, $where);
+				$out = ($tmp instanceof $object) ? $tmp->toArray() : array();
+				break;
+			}
+		}
+		return $out;
 	}
 	
 	public function checkConfig($config){
@@ -34,6 +98,7 @@ abstract class defaultData{
 		$this->_config['queryMode'] = $this->getOption('queryMode', $config);
 		$this->_config['object'] = $this->getOption('object', $config);
 		$this->_config['prepare'] = $this->getOption('prepare', $config);
+		$this->setMode($this->getOption('queryMode'));
 	}
 	
 	public function getOption($name, $config = null, $default = null){
@@ -54,15 +119,6 @@ abstract class defaultData{
 	
 	public function objVarname(){
 		return $this->varname;
-	}
-	
-	public function loadDataObject($mode = null){
-		$obj = \getObjField\loadDataObject::getInstance($this->_modx);
-		if(!isset($mode)){
-			$mode = $this->getOption('queryMode');
-		}
-		$obj->setMode($mode);
-		return $obj;
 	}
 	
 	public function getDefaultId(){
@@ -91,7 +147,7 @@ abstract class defaultData{
 	}
 	
 	protected function checkData($id, $field){
-		$out = $this->cacheObj->getData(
+		$out = $this->_getData(
 			$id, 
 			$field, 
 			$this->getOption('output'), 
